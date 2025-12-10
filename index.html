@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Website QA Issue Dashboard</title>
+    <!-- Load Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+    <!-- Load Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <!-- Load D3.js for Charting -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/d3/7.8.5/d3.min.js"></script>
+    <style>
+        /* Custom scrollbar for aesthetic purposes */
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #f1f5f9; /* Slate 100 */
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #cbd5e1; /* Slate 300 */
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #94a3b8; /* Slate 400 */
+        }
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Gray 50 */
+        }
+        /* Custom status badges for color-coding */
+        .badge-high { background-color: #fef2f2; color: #dc2626; border: 1px solid #fecaca; }
+        .badge-medium { background-color: #fff7ed; color: #ea580c; border: 1px solid #fed7aa; }
+        .badge-low { background-color: #f0fdf4; color: #15803d; border: 1px solid #a7f3d0; }
+        .badge-tuan { background-color: #eff6ff; color: #2563eb; border: 1px solid #bfdbfe; }
+
+        /* D3 Chart container styles */
+        .chart-container {
+            width: 100%;
+            height: 250px; /* Fixed height for the chart area */
+            margin-top: 1rem;
+            display: flex;
+            justify-content: center;
+        }
+        .bar {
+            cursor: pointer;
+            transition: opacity 0.2s;
+        }
+        .bar:hover {
+            opacity: 0.8;
+        }
+        .tooltip {
+            position: absolute;
+            text-align: center;
+            padding: 8px;
+            font: 12px sans-serif;
+            background: rgba(0, 0, 0, 0.7);
+            color: white;
+            border-radius: 4px;
+            pointer-events: none;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8">
+
+    <div id="app" class="max-w-7xl mx-auto">
+        <!-- Dashboard Header -->
+        <header class="mb-8">
+            <h1 class="text-3xl md:text-4xl font-extrabold text-slate-800 mb-2 flex items-center">
+                <i data-lucide="layout-dashboard" class="w-8 h-8 mr-3 text-indigo-600"></i>
+                Website QA Issue Dashboard
+            </h1>
+            <p class="text-slate-500">Summary of Website Comparison Report and Tuan N. Law Firm Review.</p>
+        </header>
+
+        <!-- Stat Cards Section -->
+        <div id="stats-container" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 mb-10">
+            <!-- Stats will be populated here -->
+        </div>
+
+        <!-- Chart and Filters Section -->
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
+            <!-- D3 Bar Chart Section -->
+            <div class="lg:col-span-1 bg-white p-4 md:p-6 rounded-xl shadow-lg border border-slate-200">
+                <h2 class="text-lg font-semibold text-slate-700 mb-2 flex items-center">
+                    <i data-lucide="bar-chart-2" class="w-5 h-5 mr-2 text-indigo-500"></i>
+                    Issues by Severity
+                </h2>
+                <div id="severity-chart" class="chart-container">
+                    <!-- Chart will be rendered here by D3.js -->
+                </div>
+            </div>
+
+            <!-- Filters and Search -->
+            <div class="lg:col-span-2 bg-white p-4 md:p-6 rounded-xl shadow-lg border border-slate-200">
+                <h2 class="text-lg font-semibold text-slate-700 mb-4 flex items-center">
+                     <i data-lucide="filter" class="w-5 h-5 mr-2 text-indigo-500"></i>
+                    Filter Issues
+                </h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-4">
+                    <!-- Search Box -->
+                    <div class="lg:col-span-2">
+                        <label for="search" class="block text-sm font-medium text-slate-700 mb-1">Search Issues</label>
+                        <div class="relative">
+                            <input type="text" id="search" placeholder="Filter by keyword, location, or type..."
+                                class="w-full pl-10 pr-4 py-2 border border-slate-300 rounded-lg focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                            <i data-lucide="search" class="w-4 h-4 text-slate-400 absolute left-3 top-1/2 transform -translate-y-1/2"></i>
+                        </div>
+                    </div>
+
+                    <!-- Severity Filter -->
+                    <div>
+                        <label for="severity-filter" class="block text-sm font-medium text-slate-700 mb-1">Severity</label>
+                        <select id="severity-filter"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                            <option value="All">All Severities</option>
+                            <option value="HIGH">HIGH</option>
+                            <option value="MEDIUM">MEDIUM</option>
+                            <option value="LOW">LOW</option>
+                            <option value="TUAN">TUAN Review</option>
+                        </select>
+                    </div>
+
+                    <!-- Location Filter -->
+                    <div>
+                        <label for="location-filter" class="block text-sm font-medium text-slate-700 mb-1">Location</label>
+                        <select id="location-filter"
+                            class="w-full px-3 py-2 border border-slate-300 rounded-lg bg-white focus:ring-indigo-500 focus:border-indigo-500 transition duration-150">
+                            <option value="All">All Locations</option>
+                            <!-- Options populated by JS -->
+                        </select>
+                    </div>
+
+                    <!-- Reset Button -->
+                    <div class="flex items-end">
+                        <button id="reset-button"
+                            class="w-full bg-slate-500 text-white py-2 px-4 rounded-lg hover:bg-slate-600 transition duration-150 shadow-md">
+                            <i data-lucide="rotate-ccw" class="w-4 h-4 inline-block mr-1"></i> Reset
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Issue Table -->
+        <div class="bg-white rounded-xl shadow-lg border border-slate-200 overflow-hidden">
+            <div class="overflow-x-auto">
+                <table class="min-w-full divide-y divide-slate-200">
+                    <thead class="bg-slate-50">
+                        <tr>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-1/12">ID</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">Location</th>
+                            <th class="px-4 py-3 text-left text-xs font-medium text-slate-500 uppercase tracking-wider w-4/12">Issue Summary</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">Type</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-2/12">Severity</th>
+                            <th class="px-4 py-3 text-center text-xs font-medium text-slate-500 uppercase tracking-wider w-1/12">Source</th>
+                        </tr>
+                    </thead>
+                    <tbody id="issue-list" class="bg-white divide-y divide-slate-100">
+                        <!-- Issue rows populated by JS -->
+                    </tbody>
+                </table>
+            </div>
+
+            <div id="no-results" class="hidden text-center p-8 text-slate-500">
+                <i data-lucide="alert-triangle" class="w-8 h-8 mx-auto mb-3 text-amber-500"></i>
+                No issues found matching your current filters.
+            </div>
+        </div>
+    </div>
+
+    <!-- JavaScript for Data and Interactivity -->
+    <script>
+        // Data derived and consolidated from both "Website Report Safe Copy.pdf" (Comparison Report)
+        // and "Tuann Website Report Safe Copy.pdf" (Tuan N. Law Firm Report)
+        const ISSUE_DATA = [
+            // Comparison Site Issues (from Website Report Safe Copy.pdf)
+            { id: 1, location: "Homepage", type: "Design/Functionality", summary: "Dysfunctional 'Review Your Business' button instead of 'Get Free Estimate' button. (Comparison Site has functioning 'Get Free Estimate' which links to Pricing Calculator)", severity: "LOW", source: "COMP" },
+            { id: 2, location: "Header", type: "Design/Functionality", summary: "Missing 'Client Login' button which should redirect to an authentication page.", severity: "MEDIUM", source: "COMP" },
+            { id: 3, location: "Header", type: "Design/Functionality", summary: "Missing 'Whirks Login' button which should redirect users to the Whirks page.", severity: "MEDIUM", source: "COMP" },
+            { id: 4, location: "Header", type: "Design/Functionality", summary: "Missing 'Search' feature in the header.", severity: "MEDIUM", source: "COMP" },
+            { id: 5, location: "Header", type: "Functionality", summary: "Logo redirects to 'Site Map' instead of the Homepage.", severity: "HIGH", source: "COMP" },
+            { id: 6, location: "Header", type: "Format/Design", summary: "Navigation bar disappears on scroll (Comparison Site's bar remains visible).", severity: "LOW", source: "COMP" },
+            { id: 7, location: "Homepage", type: "Design", summary: "Picture format differs from comparison site (small vs. large, responsive).", severity: "LOW", source: "COMP" },
+            { id: 8, location: "Homepage", type: "Content", summary: "'Driving Your Business Forward' section: The comparison site uses the package name 'Foundation' while current site uses 'Package 1'.", severity: "LOW", source: "COMP" },
+            { id: 9, location: "Homepage", type: "Content", summary: "'Driving Your Business Forward' section: Comparison site uses package name 'Growth' while current site uses 'Package 2'.", severity: "LOW", source: "COMP" },
+            { id: 10, location: "Homepage", type: "Content", summary: "'Driving Your Business Forward' section: Comparison site uses package name 'Scale' while current site uses 'Package 3'.", severity: "LOW", source: "COMP" },
+            { id: 11, location: "Homepage", type: "Content", summary: "Testimonials section: No video testimonials (Comparison Site has 3 video testimonials).", severity: "MEDIUM", source: "COMP" },
+            { id: 12, location: "Homepage", type: "Content", summary: "Testimonials section: No written testimonials (Comparison Site has 3 written testimonials).", severity: "MEDIUM", source: "COMP" },
+            { id: 13, location: "Homepage", type: "Content", summary: "Missing 'Success Stories' section (Comparison Site has it with 3 links).", severity: "MEDIUM", source: "COMP" },
+            { id: 14, location: "Footer", type: "Functionality", summary: "Facebook social media button fails to redirect (returns to top of page).", severity: "HIGH", source: "COMP" },
+            { id: 15, location: "Footer", type: "Functionality", summary: "LinkedIn social media button fails to redirect (ERR_EMPTY_RESPONSE).", severity: "HIGH", source: "COMP" },
+            { id: 16, location: "Footer", type: "Functionality", summary: "X (Twitter) social media button fails to redirect (ERR_EMPTY_RESPONSE).", severity: "HIGH", source: "COMP" },
+            { id: 17, location: "Footer", type: "Functionality", summary: "Instagram social media button fails to redirect (ERR_EMPTY_RESPONSE).", severity: "HIGH", source: "COMP" },
+            { id: 18, location: "Footer", type: "Functionality", summary: "YouTube social media button fails to redirect (ERR_EMPTY_RESPONSE).", severity: "HIGH", source: "COMP" },
+            { id: 19, location: "Footer", type: "Functionality", summary: "Google Business button fails to redirect (ERR_EMPTY_RESPONSE).", severity: "HIGH", source: "COMP" },
+            { id: 20, location: "Footer", type: "Functionality", summary: "'Meet Our Team' button fails to redirect (returns to top of page).", severity: "HIGH", source: "COMP" },
+            { id: 21, location: "Footer", type: "Functionality", summary: "'Careers' button fails to redirect (returns to top of page).", severity: "HIGH", source: "COMP" },
+            { id: 22, location: "Footer", type: "Functionality", summary: "'Privacy Policy' button fails to redirect (returns to top of page).", severity: "HIGH", source: "COMP" },
+            { id: 23, location: "Footer", type: "Functionality", summary: "'Terms and Conditions' button fails to redirect (returns to top of page).", severity: "HIGH", source: "COMP" },
+            { id: 24, location: "Footer", type: "Functionality", summary: "All three 'Tax Center' buttons fail to redirect (returns to top of page).", severity: "HIGH", source: "COMP" },
+            { id: 25, location: "All Pages", type: "Functionality", summary: "All Footer buttons, except those already listed, fail to redirect (return to top of page).", severity: "HIGH", source: "COMP" },
+            { id: 26, location: "Pricing Calculator Page", type: "Functionality", summary: "Page is missing (redirects to a page error instead).", severity: "HIGH", source: "COMP" },
+            { id: 27, location: "Schedule an Appointment Page", type: "Functionality", summary: "Page is missing (redirects to a page error instead).", severity: "HIGH", source: "COMP" },
+            { id: 28, location: "Homepage", type: "Content/Functionality", summary: "Missing 'Who We Are' button (Comparison Site has a functional button to 'About Us').", severity: "MEDIUM", source: "COMP" },
+            { id: 29, location: "Homepage", type: "Content/Functionality", summary: "Missing 'Learning Center' button (Comparison Site has a functional button to a resource hub).", severity: "MEDIUM", source: "COMP" },
+            { id: 30, location: "Homepage", type: "Content", summary: "Missing 'Trusted Partner' section (Comparison Site has a section with 3 customer testimonials).", severity: "MEDIUM", source: "COMP" },
+            { id: 31, location: "Homepage", type: "Content", summary: "Missing 'Client Success' section (Comparison Site has success stories).", severity: "MEDIUM", source: "COMP" },
+            { id: 32, location: "Homepage", type: "Design", summary: "Banner image is blurry on mobile (Comparison Site's banner is clear/responsive).", severity: "MEDIUM", source: "COMP" },
+            { id: 33, location: "Our Team Page", type: "Content", summary: "Missing 'Achieve More Together' section with a functional 'Let's Chat' button.", severity: "LOW", source: "COMP" },
+            { id: 34, location: "Our Team Page (Profiles)", type: "Design/Functionality", summary: "Missing social media link (LinkedIn) on team member profiles.", severity: "LOW", source: "COMP" },
+
+            // Issues 42-54 and 122 and 13 are explicitly listed as missing content
+            { id: 42, location: "Homepage", type: "Content", summary: "Missing 'Book Appointment' button in main header/banner area.", severity: "MEDIUM", source: "COMP" },
+            { id: 43, location: "Homepage", type: "Content", summary: "Missing video content on the main banner.", severity: "MEDIUM", source: "COMP" },
+            { id: 44, location: "Homepage", type: "Content", summary: "Missing 'About Us' section link/button in the footer.", severity: "MEDIUM", source: "COMP" },
+            { id: 45, location: "Homepage", type: "Content", summary: "Missing 'Partners' section (Comparison Site has client logos).", severity: "MEDIUM", source: "COMP" },
+            { id: 46, location: "Header", type: "Content", summary: "Missing 'Contact Us' page link in the main navigation.", severity: "MEDIUM", source: "COMP" },
+            { id: 47, location: "All Pages", type: "Content", summary: "Missing standard header component across all pages.", severity: "HIGH", source: "COMP" },
+            { id: 48, location: "All Pages", type: "Content", summary: "Missing standard footer component across all pages.", severity: "HIGH", source: "COMP" },
+            { id: 49, location: "Our Team Page", type: "Content", summary: "Missing professional title by names in the team section.", severity: "LOW", source: "COMP" },
+            { id: 51, location: "Contact Form", type: "Content", summary: "Contact form is missing the 'Phone Number' field (Comparison Site requires it).", severity: "LOW", source: "COMP" },
+            { id: 52, location: "Homepage", type: "Content", summary: "'Hear From Our Client' section does not have professional title by names.", severity: "LOW", source: "COMP" },
+            { id: 53, location: "Our Team Page", type: "Content", summary: "Missing 'Achieve More Together' section.", severity: "LOW", source: "COMP" },
+            { id: 54, location: "Our Team Page (Profiles)", type: "Content", summary: "Missing social media link (LinkedIn) on team member profiles.", severity: "LOW", source: "COMP" },
+            { id: 122, location: "Legal Disclosures", type: "Functionality", summary: "Terms and Conditions page redirects to ERR_EMPTY_RESPONSE.", severity: "HIGH", source: "COMP" },
+            { id: 130, location: "Homepage", type: "Content", summary: "Missing 'Success Stories' section (This is a MEDIUM-level missing content issue).", severity: "MEDIUM", source: "COMP" },
+            // Tuan N. Law Firm Specific Issues/Feedback (from Tuann Website Report Safe Copy.pdf)
+            { id: 201, location: "Practice Areas Pages", type: "Design", summary: "Suggestion: Add more graphics or color to break up heavy text content and improve engagement.", severity: "TUAN", source: "TUAN" },
+            { id: 202, location: "Pre-Marital Agreements Page", type: "Format", summary: "Spacing error between the 'I' and 'c' in the word 'office' in the 'Secure Your Future' section.", severity: "TUAN", source: "TUAN" },
+            { id: 203, location: "Overall", type: "Usability", summary: "Positive Feedback: Navigation is very easy and clear to use; no broken links or hard-to-navigate sections.", severity: "TUAN", source: "TUAN" },
+            { id: 204, location: "Overall Content", type: "Content", summary: "Positive Feedback: Content is informative and easy to understand for non-legal professionals.", severity: "TUAN", source: "TUAN" },
+            { id: 205, location: "Criminal Defense Page", type: "Content", summary: "Positive Feedback: The 'Remain Calm and Don't Panic' section is a helpful and comforting addition.", severity: "TUAN", source: "TUAN" },
+        ];
+
+        // --- D3 Chart Colors ---
+        const severityColors = {
+            'HIGH': '#dc2626', // Red 600
+            'MEDIUM': '#ea580c', // Orange 600
+            'LOW': '#15803d', // Green 700
+            'TUAN': '#2563eb' // Blue 600
+        };
+
+        // --- Helper Functions ---
+
+        const getSeverityClass = (severity) => {
+            switch (severity) {
+                case 'HIGH':
+                    return 'badge-high';
+                case 'MEDIUM':
+                    return 'badge-medium';
+                case 'LOW':
+                    return 'badge-low';
+                case 'TUAN':
+                    return 'badge-tuan';
+                default:
+                    return 'bg-slate-100 text-slate-700';
+            }
+        };
+
+        const getSeverityIcon = (severity) => {
+            switch (severity) {
+                case 'HIGH':
+                    return '<i data-lucide="zap" class="w-4 h-4 mr-1"></i>';
+                case 'MEDIUM':
+                    return '<i data-lucide="alert-triangle" class="w-4 h-4 mr-1"></i>';
+                case 'LOW':
+                    return '<i data-lucide="check-circle" class="w-4 h-4 mr-1"></i>';
+                case 'TUAN':
+                    return '<i data-lucide="star" class="w-4 h-4 mr-1"></i>';
+                default:
+                    return '';
+            }
+        };
+
+        const getSourceBadge = (source) => {
+            if (source === 'COMP') {
+                return '<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-100 text-indigo-700">Comparison</span>';
+            } else if (source === 'TUAN') {
+                return '<span class="px-2 py-0.5 text-xs font-semibold rounded-full bg-blue-100 text-blue-700">Tuan N. Review</span>';
+            }
+            return '';
+        };
+
+        // --- D3 Chart Rendering Function ---
+
+        function renderSeverityChart(issues) {
+            const chartDiv = document.getElementById('severity-chart');
+            chartDiv.innerHTML = ''; // Clear previous chart
+
+            // 1. Prepare Data
+            const severityCounts = issues.reduce((acc, issue) => {
+                acc[issue.severity] = (acc[issue.severity] || 0) + 1;
+                return acc;
+            }, {});
+
+            const chartData = [
+                { severity: 'HIGH', count: severityCounts['HIGH'] || 0, color: severityColors['HIGH'] },
+                { severity: 'MEDIUM', count: severityCounts['MEDIUM'] || 0, color: severityColors['MEDIUM'] },
+                { severity: 'LOW', count: severityCounts['LOW'] || 0, color: severityColors['LOW'] },
+                { severity: 'TUAN', count: severityCounts['TUAN'] || 0, color: severityColors['TUAN'] },
+            ];
+
+            // Filter out severities with zero counts if desired, but here we keep them to maintain category order
+            // chartData = chartData.filter(d => d.count > 0);
+
+            // 2. Setup Dimensions
+            const containerWidth = chartDiv.clientWidth;
+            const containerHeight = chartDiv.clientHeight;
+            const margin = { top: 10, right: 10, bottom: 40, left: 30 };
+            const width = containerWidth - margin.left - margin.right;
+            const height = containerHeight - margin.top - margin.bottom;
+
+            // 3. Create SVG Container
+            const svg = d3.select(chartDiv).append("svg")
+                .attr("width", containerWidth)
+                .attr("height", containerHeight)
+                .append("g")
+                .attr("transform", `translate(${margin.left}, ${margin.top})`);
+
+            // 4. Create Scales
+            const x = d3.scaleBand()
+                .domain(chartData.map(d => d.severity))
+                .range([0, width])
+                .padding(0.3);
+
+            const yMax = d3.max(chartData, d => d.count);
+            const y = d3.scaleLinear()
+                .domain([0, yMax > 0 ? yMax * 1.1 : 1]) // Ensure scale is not zero if max is zero
+                .range([height, 0]);
+
+            // 5. Add Axes
+            // X-Axis
+            svg.append("g")
+                .attr("transform", `translate(0, ${height})`)
+                .call(d3.axisBottom(x).tickSizeOuter(0))
+                .attr("class", "text-sm text-slate-600");
+
+            // Y-Axis
+            svg.append("g")
+                .call(d3.axisLeft(y).ticks(Math.min(yMax, 5)).tickFormat(d3.format("d")))
+                .attr("class", "text-sm text-slate-600");
+
+
+            // 6. Add Bars
+            const bars = svg.selectAll(".bar")
+                .data(chartData.filter(d => d.count > 0)) // Only draw bars that have a count > 0
+                .enter().append("rect")
+                .attr("class", "bar")
+                .attr("x", d => x(d.severity))
+                .attr("y", d => y(d.count))
+                .attr("width", x.bandwidth())
+                .attr("height", d => height - y(d.count))
+                .attr("fill", d => d.color)
+                .on("click", (event, d) => {
+                    // Clicking a bar filters the table to that severity
+                    document.getElementById('severity-filter').value = d.severity;
+                    applyFilters();
+                });
+
+            // 7. Add Tooltips (using a detached HTML element)
+            const tooltip = d3.select("body").append("div")
+                .attr("class", "tooltip");
+
+            bars.on("mouseover", function(event, d) {
+                tooltip.transition().duration(200).style("opacity", .9);
+                tooltip.html(`<strong>${d.severity}</strong><br/>${d.count} Issues`)
+                    .style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            }).on("mousemove", function(event, d) {
+                tooltip.style("left", (event.pageX + 10) + "px")
+                    .style("top", (event.pageY - 28) + "px");
+            }).on("mouseout", function(d) {
+                tooltip.transition().duration(500).style("opacity", 0);
+            });
+        }
+
+        // --- Standard Rendering Functions ---
+
+        function renderStats(issues) {
+            const container = document.getElementById('stats-container');
+            container.innerHTML = '';
+
+            const total = issues.length;
+            const high = issues.filter(i => i.severity === 'HIGH').length;
+            const medium = issues.filter(i => i.severity === 'MEDIUM').length;
+            const low = issues.filter(i => i.severity === 'LOW').length;
+            const tuan = issues.filter(i => i.severity === 'TUAN').length;
+
+            const stats = [
+                { title: "Total Items", value: total, icon: "list-checks", color: "indigo", description: "All Issues & Feedback" },
+                { title: "High Priority", value: high, icon: "zap", color: "red", description: "Requires Immediate Fix (Hotfix)" },
+                { title: "Medium Priority", value: medium, icon: "alert-triangle", color: "amber", description: "Fix in Next Scheduled Release" },
+                { title: "Low/Tuan Feedback", value: low + tuan, icon: "check-circle", color: "green", description: "Deferred or Positive Feedback" },
+            ];
+
+            stats.forEach(stat => {
+                // Determine border color based on the stat type for Tailwind
+                let borderColor;
+                switch(stat.color) {
+                    case 'red': borderColor = 'border-red-500'; break;
+                    case 'amber': borderColor = 'border-amber-500'; break;
+                    case 'green': borderColor = 'border-green-500'; break;
+                    case 'indigo':
+                    default: borderColor = 'border-indigo-500';
+                }
+
+                const card = `
+                    <div class="bg-white p-5 rounded-xl shadow-md border-l-4 ${borderColor} transition hover:shadow-lg">
+                        <div class="flex items-center justify-between">
+                            <p class="text-sm font-medium text-slate-500">${stat.title}</p>
+                            <i data-lucide="${stat.icon}" class="w-5 h-5 text-${stat.color}-500"></i>
+                        </div>
+                        <p class="text-3xl font-bold text-slate-800 mt-1">${stat.value}</p>
+                        <p class="text-xs text-slate-400 mt-2 truncate">${stat.description}</p>
+                    </div>
+                `;
+                container.innerHTML += card;
+            });
+             // Re-render lucide icons after injecting HTML
+            lucide.createIcons();
+        }
+
+        function renderIssueList(issues) {
+            const tbody = document.getElementById('issue-list');
+            const noResults = document.getElementById('no-results');
+            tbody.innerHTML = '';
+
+            if (issues.length === 0) {
+                noResults.classList.remove('hidden');
+            } else {
+                noResults.classList.add('hidden');
+            }
+
+            issues.forEach(issue => {
+                const row = `
+                    <tr class="hover:bg-slate-50 transition duration-100">
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-medium text-slate-900">${issue.id}</td>
+                        <td class="px-4 py-3 text-sm text-slate-600">${issue.location}</td>
+                        <td class="px-4 py-3 text-sm text-slate-800 font-medium">${issue.summary}</td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap text-sm text-slate-500">${issue.type}</td>
+                        <td class="px-4 py-3 whitespace-nowrap text-sm font-semibold text-center">
+                            <span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${getSeverityClass(issue.severity)}">
+                                ${getSeverityIcon(issue.severity)}${issue.severity}
+                            </span>
+                        </td>
+                        <td class="px-4 py-3 text-center whitespace-nowrap text-sm text-slate-500">
+                           ${getSourceBadge(issue.source)}
+                        </td>
+                    </tr>
+                `;
+                tbody.innerHTML += row;
+            });
+            // Re-render lucide icons after injecting HTML
+            lucide.createIcons();
+        }
+
+        function populateLocationFilter() {
+            const filter = document.getElementById('location-filter');
+            const locations = [...new Set(ISSUE_DATA.map(item => item.location))].sort();
+
+            locations.forEach(location => {
+                const option = document.createElement('option');
+                option.value = location;
+                option.textContent = location;
+                filter.appendChild(option);
+            });
+        }
+
+        // --- Filtering Logic ---
+
+        function applyFilters() {
+            const searchTerm = document.getElementById('search').value.toLowerCase();
+            const severityFilter = document.getElementById('severity-filter').value;
+            const locationFilter = document.getElementById('location-filter').value;
+
+            const filteredIssues = ISSUE_DATA.filter(issue => {
+                // 1. Severity Filter
+                const matchesSeverity = severityFilter === 'All' || issue.severity === severityFilter;
+
+                // 2. Location Filter
+                const matchesLocation = locationFilter === 'All' || issue.location === locationFilter;
+
+                // 3. Search Term Filter
+                const searchFields = [
+                    issue.summary,
+                    issue.location,
+                    issue.type,
+                    issue.severity,
+                    issue.source
+                ].join(' ').toLowerCase();
+                const matchesSearch = searchFields.includes(searchTerm);
+
+                return matchesSeverity && matchesLocation && matchesSearch;
+            });
+
+            // Update UI components
+            renderStats(filteredIssues);
+            renderIssueList(filteredIssues);
+            renderSeverityChart(filteredIssues);
+        }
+
+        function resetFilters() {
+            document.getElementById('search').value = '';
+            document.getElementById('severity-filter').value = 'All';
+            document.getElementById('location-filter').value = 'All';
+            applyFilters();
+        }
+
+
+        // --- Initialization ---
+
+        window.onload = () => {
+            // Initial rendering
+            populateLocationFilter();
+            applyFilters(); // Call applyFilters to render all components initially
+
+            // Set up event listeners
+            document.getElementById('search').addEventListener('input', applyFilters);
+            document.getElementById('severity-filter').addEventListener('change', applyFilters);
+            document.getElementById('location-filter').addEventListener('change', applyFilters);
+            document.getElementById('reset-button').addEventListener('click', resetFilters);
+
+            // Re-render chart on window resize for responsiveness
+            window.addEventListener('resize', () => {
+                // Use a debounce function in production, but for simplicity here, we'll call it directly
+                renderSeverityChart(ISSUE_DATA);
+            });
+        };
+    </script>
+</body>
+</html>
